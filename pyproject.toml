@@ -1,6 +1,6 @@
 [project]
 name = "fastapi-cli"
-version = "0.1.1"
+version = "0.1.2"
 description = "CLI tool for FastAPI - generate SSL certificates and more"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,7 +21,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "pre-commit>=4.5.1",
     "rich>=14.2.0",
     "typer>=0.21.1",
 ]
@@ -39,4 +38,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["fastai"]
+packages = ["src/fastai"]

@@ -6,6 +6,7 @@ from rich.console import Console
 router = typer.Typer()
 console = Console()
 
+
 FOLDERS = [
     "service",
     "core",
@@ -16,6 +17,7 @@ FOLDERS = [
 ]
 
 
+@router.command("init")
 def init_command(
     name: str = typer.Argument(
         "backend",
@@ -44,7 +46,9 @@ def init_command(
     main_py.write_text(
         """from fastapi import FastAPI
 
+
 app = FastAPI()
+
 
 @app.get("/")
 async def root():
