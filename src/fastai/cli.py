@@ -20,6 +20,7 @@ def show_help():
     table.add_column("Command", style="cyan")
     table.add_column("Description", style="magenta")
 
+    table.add_row("init [name]", "Initialize FastAPI project structure")
     table.add_row("ssl", "Generate self-signed SSL certificates (cert.pem & key.pem)")
 
     console.print(table)
