@@ -9,7 +9,7 @@ Thank you for your interest in contributing! We welcome contributions from the c
 Fork the repository on GitHub and clone it locally:
 
 ```bash
-git clone https://github.com/YOURUSERNAME/fastapi-cli.git
+git clone https://github.com/ndugram/fastai-cli.git
 cd fastapi-cli
 ```
 
@@ -110,7 +110,7 @@ Closes #123
 ## Questions?
 
 If you have questions, feel free to:
-- Open a [Discussion](https://github.com/твгпкфь/fastai-cli/discussions)
+- Open a [Discussion](https://github.com/ndugram/fastai-cli/discussions)
 - Ask in our community chat
 
 We appreciate your contribution!
