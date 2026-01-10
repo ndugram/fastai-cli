@@ -3,6 +3,18 @@ from pathlib import Path
 from rich.console import Console
 
 
+"""
+fastai-cli - A modern CLI tool for FastAPI developers
+
+This module provides commands for initializing FastAPI projects
+and managing development servers.
+
+Usage:
+    fastai init <project_name>    - Create new FastAPI project structure
+    fastai help                   - Show available commands
+"""
+
+
 router = typer.Typer()
 console = Console()
 
@@ -44,16 +56,109 @@ def init_command(
 
     main_py = project_dir / "main.py"
     main_py.write_text(
-        """from fastapi import FastAPI
+        '''"""FastAPI application module.
+
+This module contains the main FastAPI application instance and all
+registered routes. The application is created using FastAPI framework
+with automatic OpenAPI documentation generation.
+
+To run the application:
+    python manage.py runserver
+
+The application will be available at http://127.0.0.1:8000
+API documentation: http://127.0.0.1:8000/docs
+ReDoc: http://127.0.0.1:8000/redoc
+"""
+from fastapi import FastAPI
 
 
-app = FastAPI()
+app = FastAPI(
+    title="FastAPI Project",
+    description="A modern FastAPI application",
+    version="1.0.0",
+)
 
 
 @app.get("/")
 async def root():
-    return {"status": "ok"}
+    """Root endpoint - returns API status."""
+    return {"status": "ok", "message": "Welcome to FastAPI"}
+'''
+    )
+
+    # Create manage.py
+    manage_py = project_dir / "manage.py"
+    manage_py.write_text(
+        '''
 """
+Script for FastAPI projects.
+
+This utility provides a set of commands to help you manage your FastAPI
+application during development.
+
+Usage:
+    python manage.py <command> [options]
+
+Available commands:
+    runserver    Start the development server
+    help         Show this help message
+
+Options for runserver:
+    --host HOST     Bind to this host (default: 127.0.0.1)
+    --port PORT     Bind to this port (default: 8000)
+    --noreload      Disable auto-reload
+"""
+
+import sys
+import uvicorn
+
+
+def main():
+    """Run administrative tasks."""
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(1)
+
+    command = sys.argv[1]
+    args = sys.argv[2:]
+
+    host = "127.0.0.1"
+    port = 8000
+    reload = True
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--host" and i + 1 < len(args):
+            host = args[i + 1]
+            i += 2
+        elif args[i] == "--port" and i + 1 < len(args):
+            port = int(args[i + 1])
+            i += 2
+        elif args[i] == "--noreload":
+            reload = False
+            i += 2
+        else:
+            i += 1
+
+    if command == "runserver":
+        print(f"🚀 Starting server at http://{host}:{port}")
+        uvicorn.run(
+            "main:app",
+            host=host,
+            port=port,
+            reload=reload,
+        )
+    elif command == "help":
+        print(__doc__)
+    else:
+        print(f"Unknown command: {command}")
+        print("Run 'python manage.py help' for usage information.")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+'''
     )
 
     console.print("✅ Project structure created successfully!",
