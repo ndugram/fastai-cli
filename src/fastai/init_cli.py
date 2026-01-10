@@ -83,10 +83,10 @@ app = FastAPI(
 async def root():
     """Root endpoint - returns API status."""
     return {"status": "ok", "message": "Welcome to FastAPI"}
+
 '''
     )
 
-    # Create manage.py
     manage_py = project_dir / "manage.py"
     manage_py.write_text(
         '''
