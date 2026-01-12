@@ -15,7 +15,7 @@ Usage:
 """
 
 
-router = typer.Typer()
+console_router = typer.Typer()
 console = Console()
 
 
@@ -29,7 +29,7 @@ FOLDERS = [
 ]
 
 
-@router.command("init")
+@console_router.command("init")
 def init_command(
     name: str = typer.Argument(
         "backend",
