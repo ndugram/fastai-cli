@@ -1,4 +1,4 @@
-# fastai-cli
+# fastgram
 
 A modern CLI tool for FastAPI developers - initialize projects and generate SSL certificates.
 
@@ -20,14 +20,14 @@ A modern CLI tool for FastAPI developers - initialize projects and generate SSL 
 ### From GitHub
 
 ```bash
-pip install git+https://github.com/ndugram/fastai-cli.git
+pip install git+https://github.com/ndugram/fastgram-cli.git
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/ndugram/fastai-cli.git
-cd fastai-cli
+git clone https://github.com/ndugram/fastgram-cli.git
+cd fastgram
 pip install -e .
 ```
 
@@ -35,7 +35,7 @@ pip install -e .
 
 ```bash
 # Initialize a new project
-fastai init myproject
+fastgram init myproject
 
 # Enter project directory
 cd myproject
@@ -51,7 +51,7 @@ python manage.py runserver
 ## Initialize Project
 
 ```bash
-fastai init [name]
+fastgram init [name]
 ```
 
 Creates a new FastAPI project structure:
@@ -79,7 +79,7 @@ Default project name: `backend`
 ## Generate SSL Certificates
 
 ```bash
-fastai ssl
+fastgram ssl
 ```
 
 Creates SSL certificates in `certs/` directory:

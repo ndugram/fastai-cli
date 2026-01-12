@@ -1,6 +1,6 @@
 [project]
-name = "fastapi-cli"
-version = "0.1.3"
+name = "fastgram-cli"
+version = "0.1.5"
 description = "CLI tool for FastAPI - generate SSL certificates and more"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -8,7 +8,7 @@ license = {text = "MIT"}
 authors = [
     {name = "NEFORCEO", email = "n7for8572@gmail.com"}
 ]
-keywords = ["cli", "fastapi", "ssl", "certificate", "tool"]
+keywords = ["cli", "fastgram", "ssl", "certificate", "tool"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -27,16 +27,16 @@ dependencies = [
 ]
 
 [project.scripts]
-fastai = "fastai.cli:main"
+fastgram = "fastgram.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/ndugram/fastai-cli"
-Repository = "https://github.com/ndugram/fastai-cli"
-Issues = "https://github.com/ndugram/fastai-cli/issues"
+Homepage = "https://github.com/ndugram/fastgram-cli"
+Repository = "https://github.com/ndugram/fastgram-cli"
+Issues = "https://github.com/ndugram/fastgram-cli/issues"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/fastai"]
+packages = ["src/fastgram"]

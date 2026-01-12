@@ -165,5 +165,5 @@ if __name__ == "__main__":
                   style="bold green")
     console.print(
         f"👉 Next steps:\n"
-        f"   uvicorn {name}.main:app --reload"
+        f"✅ cd {name}"
     )
