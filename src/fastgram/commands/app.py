@@ -5,7 +5,6 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-
 """
 fastgram - A modern CLI tool for FastAPI developers
 
