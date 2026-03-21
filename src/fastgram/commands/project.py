@@ -27,6 +27,7 @@ FOLDERS = [
     "api",
     "views",
     "middleware",
+    "admin"
 ]
 
 @console_router.command("init")
