@@ -29,7 +29,6 @@ FOLDERS = [
     "middleware",
 ]
 
-
 @console_router.command("init")
 def init_command(
     name: str = typer.Argument(
@@ -73,6 +72,7 @@ ReDoc: http://127.0.0.1:8000/redoc
 from fastapi import FastAPI
 
 from middleware.loader import load_middlewares
+from admin import router as admin_router
 
 
 app = FastAPI(
@@ -81,6 +81,7 @@ app = FastAPI(
     version="1.0.0",
 )
 load_middlewares(app)
+app.include_router(admin_router)
 
 
 @app.get("/")
@@ -324,9 +325,84 @@ def load_middlewares(app: FastAPI) -> None:
 '''
     )
 
+    (middleware_dir / "jwt.py").write_text(
+        '''"""JWT Authentication Middleware for FastAPI."""
+from datetime import datetime, timedelta
+from typing import Optional
+
+from jose import JWTError, jwt
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import Request, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from settings import SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_MINUTES
+
+
+security = HTTPBearer(auto_error=False)
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=JWT_EXPIRATION_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def decode_token(token: str) -> dict:
+    return jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+
+
+class JWTMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if hasattr(request.state, "skip_jwt") and request.state.skip_jwt:
+            return await call_next(request)
+        
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            try:
+                payload = decode_token(token)
+                request.state.user_id = payload.get("sub")
+                request.state.token_payload = payload
+            except JWTError:
+                pass
+        
+        return await call_next(request)
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = None) -> dict:
+    if not credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    try:
+        payload = decode_token(credentials.credentials)
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+'''
+    )
+
+    (middleware_dir / "auth.py").write_text(
+        '''"""Authentication utilities."""
+from datetime import timedelta
+from fastapi import HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from .jwt import create_access_token, get_current_user
+
+
+security = HTTPBearer()
+
+
+def require_auth(func):
+    async def wrapper(*args, credentials: HTTPAuthorizationCredentials = None, **kwargs):
+        return await get_current_user(credentials)
+    return wrapper
+'''
+    )
+
     settings_py = project_dir / "settings.py"
 
-    # Generate a secure secret key for this project
+
     import secrets
     secret_key = secrets.token_urlsafe(32)
 
@@ -349,12 +425,17 @@ DB_URL = "sqlite+aiosqlite:///./db.sqlite3"
 # Rate limit settings
 RATE_LIMIT_LIMIT = "5/second"
 
+# JWT settings
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_MINUTES = 30
+
 
 SECRET_KEY = "{secret_key}"
 
 # Middleware registration
 # Order matters: middlewares are applied from top to bottom
 MIDDLEWARE = [
+    "middleware.jwt.JWTMiddleware",
     "middleware.rate_limit.RateLimitMiddleware",
     "middleware.logging.LoggingMiddleware",
     "middleware.cors.CORSMiddleware",
@@ -363,8 +444,95 @@ MIDDLEWARE = [
 '''
     )
 
-    # === Database setup (imported directly from fastgram.database) ===
-    # No need to create database.py - use fastgram.database directly
+    admin_py = project_dir / "admin.py"
+    admin_py.write_text(
+        '''"""Admin API endpoints."""
+import platform
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+from fastapi import APIRouter, Request
+from pydantic import BaseModel
+
+
+router = APIRouter(prefix="/admin", tags=["Admin"])
+
+
+class StatsResponse(BaseModel):
+    total_endpoints: int
+    total_routes: int
+    uptime_seconds: float
+    requests_count: int
+
+
+class InfoResponse(BaseModel):
+    python_version: str
+    platform: str
+    fastapi_version: str
+    uvicorn_version: str
+    working_directory: str
+
+
+class LogsResponse(BaseModel):
+    logs: list[str]
+
+
+_start_time = time.time()
+_request_count = 0
+
+
+@router.get("/stats", response_model=StatsResponse)
+async def get_stats(request: Request):
+    global _request_count
+    _request_count += 1
+    
+    routes = []
+    for route in request.app.routes:
+        if hasattr(route, "path"):
+            routes.append(route.path)
+    
+    return StatsResponse(
+        total_endpoints=len([r for r in routes if not r.startswith("/admin")]),
+        total_routes=len(routes),
+        uptime_seconds=time.time() - _start_time,
+        requests_count=_request_count,
+    )
+
+
+@router.get("/info", response_model=InfoResponse)
+async def get_info(request: Request):
+    import fastapi
+    import uvicorn
+    
+    routes = []
+    for route in request.app.routes:
+        if hasattr(route, "path"):
+            routes.append(route.path)
+    
+    return InfoResponse(
+        python_version=sys.version,
+        platform=platform.platform(),
+        fastapi_version=fastapi.__version__,
+        uvicorn_version=uvicorn.__version__,
+        working_directory=str(Path.cwd()),
+    )
+
+
+@router.get("/logs", response_model=LogsResponse)
+async def get_logs(limit: int = 50):
+    logs_dir = Path("logs")
+    all_logs = []
+    
+    if logs_dir.exists():
+        for log_file in logs_dir.glob("*.log"):
+            content = log_file.read_text(encoding="utf-8", errors="ignore")
+            all_logs.extend(content.strip().split("\\n")[-limit:])
+    
+    return LogsResponse(logs=all_logs[-limit:])
+'''
+    )
 
     console.print("✅ Project structure created successfully!",
                   style="bold green")
