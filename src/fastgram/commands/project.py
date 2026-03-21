@@ -87,6 +87,9 @@ app.include_router(admin_router)
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "Welcome to FastAPI"}
+
+
+__all__ = ["app"]
 '''
     )
 
@@ -444,20 +447,35 @@ MIDDLEWARE = [
 '''
     )
 
-    admin_py = project_dir / "admin.py"
-    admin_py.write_text(
-        '''"""Admin API endpoints."""
-import platform
-import sys
-import time
-from datetime import datetime
-from pathlib import Path
+    admin_dir = project_dir / "admin"
+    admin_dir.mkdir()
+    (admin_dir / "__init__.py").write_text(
+        '''"""Admin API module."""
+from fastapi import APIRouter
+from .stats import router as stats_router
+from .info import router as info_router
+from .logs import router as logs_router
+from .routes import router as routes_router
+from .health import router as health_router
 
+
+router = APIRouter(prefix="/admin", tags=["Admin"])
+router.include_router(stats_router)
+router.include_router(info_router)
+router.include_router(logs_router)
+router.include_router(routes_router)
+router.include_router(health_router)
+'''
+    )
+
+    (admin_dir / "stats.py").write_text(
+        '''"""Admin stats endpoints."""
+import time
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+router = APIRouter(tags=["Admin"])
 
 
 class StatsResponse(BaseModel):
@@ -465,18 +483,6 @@ class StatsResponse(BaseModel):
     total_routes: int
     uptime_seconds: float
     requests_count: int
-
-
-class InfoResponse(BaseModel):
-    python_version: str
-    platform: str
-    fastapi_version: str
-    uvicorn_version: str
-    working_directory: str
-
-
-class LogsResponse(BaseModel):
-    logs: list[str]
 
 
 _start_time = time.time()
@@ -488,10 +494,7 @@ async def get_stats(request: Request):
     global _request_count
     _request_count += 1
     
-    routes = []
-    for route in request.app.routes:
-        if hasattr(route, "path"):
-            routes.append(route.path)
+    routes = [r.path for r in request.app.routes if hasattr(r, "path")]
     
     return StatsResponse(
         total_endpoints=len([r for r in routes if not r.startswith("/admin")]),
@@ -499,17 +502,33 @@ async def get_stats(request: Request):
         uptime_seconds=time.time() - _start_time,
         requests_count=_request_count,
     )
+'''
+    )
+
+    (admin_dir / "info.py").write_text(
+        '''"""Admin info endpoints."""
+import platform
+import sys
+from pathlib import Path
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+
+router = APIRouter(tags=["Admin"])
+
+
+class InfoResponse(BaseModel):
+    python_version: str
+    platform: str
+    fastapi_version: str
+    uvicorn_version: str
+    working_directory: str
 
 
 @router.get("/info", response_model=InfoResponse)
-async def get_info(request: Request):
+async def get_info():
     import fastapi
     import uvicorn
-    
-    routes = []
-    for route in request.app.routes:
-        if hasattr(route, "path"):
-            routes.append(route.path)
     
     return InfoResponse(
         python_version=sys.version,
@@ -518,6 +537,21 @@ async def get_info(request: Request):
         uvicorn_version=uvicorn.__version__,
         working_directory=str(Path.cwd()),
     )
+'''
+    )
+
+    (admin_dir / "logs.py").write_text(
+        '''"""Admin logs endpoints."""
+from pathlib import Path
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+
+router = APIRouter(tags=["Admin"])
+
+
+class LogsResponse(BaseModel):
+    logs: list[str]
 
 
 @router.get("/logs", response_model=LogsResponse)
@@ -531,6 +565,68 @@ async def get_logs(limit: int = 50):
             all_logs.extend(content.strip().split("\\n")[-limit:])
     
     return LogsResponse(logs=all_logs[-limit:])
+'''
+    )
+
+    (admin_dir / "routes.py").write_text(
+        '''"""Admin routes endpoints."""
+from fastapi import APIRouter, Request
+from pydantic import BaseModel
+
+
+router = APIRouter(tags=["Admin"])
+
+
+class RouteInfo(BaseModel):
+    path: str
+    methods: list[str]
+    name: str | None
+
+
+class RoutesResponse(BaseModel):
+    routes: list[RouteInfo]
+
+
+@router.get("/routes", response_model=RoutesResponse)
+async def get_routes(request: Request):
+    routes = []
+    for route in request.app.routes:
+        if hasattr(route, "path"):
+            methods = list(route.methods) if hasattr(route, "methods") else []
+            routes.append(RouteInfo(
+                path=route.path,
+                methods=methods,
+                name=route.name,
+            ))
+    
+    return RoutesResponse(routes=routes)
+'''
+    )
+
+    (admin_dir / "health.py").write_text(
+        '''"""Admin health endpoints."""
+from fastapi import APIRouter, Request
+from pydantic import BaseModel
+
+
+router = APIRouter(tags=["Admin"])
+
+
+class HealthResponse(BaseModel):
+    status: str
+    database: str
+    timestamp: str
+
+
+@router.get("/health", response_model=HealthResponse)
+async def get_health(request: Request):
+    db_status = "ok"
+    
+    return HealthResponse(
+        status="ok",
+        database=db_status,
+        timestamp=str(request.state.request_id) if hasattr(request.state, "request_id") else "unknown",
+    )
 '''
     )
 
